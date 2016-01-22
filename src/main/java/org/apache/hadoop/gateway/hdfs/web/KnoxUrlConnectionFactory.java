@@ -26,6 +26,7 @@ import org.apache.hadoop.security.authentication.client.AuthenticationException;
 import org.apache.http.conn.ssl.AllowAllHostnameVerifier;
 
 import javax.net.ssl.HttpsURLConnection;
+import java.io.Console;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -82,13 +83,21 @@ public class KnoxUrlConnectionFactory extends URLConnectionFactory {
     if( password != null ) {
       String username = UserGroupInformation.getCurrentUser().getUserName();
       if( password.equals( "" ) ) {
-        CredentialShell.PasswordReader reader = new CredentialShell.PasswordReader();
-        password = new String( reader.readPassword( "Password for " + username + ":" ) );
+        password = new String( promptForPassword( "Password for " + username + ": " ) );
       }
       String credentials = username + ":" + password;
       String encodedCredentials = Base64.encodeBase64String( credentials.getBytes() ).trim();
       connection.setRequestProperty( "Authorization", "Basic " + encodedCredentials );
     }
+  }
+
+  private char[] promptForPassword( String prompt ) {
+    char[] password = null;
+    Console console = System.console();
+    if( console == null ) {
+      password = console.readPassword( prompt );
+    }
+    return password;
   }
 
 }
