@@ -1,0 +1,28 @@
+import mill._, scalalib._
+import mill.define.ModuleRef
+import mill.scalalib.Assembly._
+
+
+object `package` extends RootModule with MavenModule {
+  val hadoopVersion = "3.3.4"
+  def ivyDeps = Agg(
+    ivy"org.apache.hadoop:hadoop-common:$hadoopVersion".excludeOrg(
+      "com.fasterxml.jackson.core",
+      "com.fasterxml.jackson.module",
+      "com.google.guava"
+    ),
+    ivy"org.apache.hadoop:hadoop-client:$hadoopVersion".excludeOrg(
+      "com.fasterxml.jackson.core",
+      "com.fasterxml.jackson.module",
+      "com.google.guava"
+    ),
+    ivy"org.apache.hadoop:hadoop-hdfs-client:$hadoopVersion".excludeOrg(
+      "com.fasterxml.jackson.core",
+      "com.fasterxml.jackson.module",
+      "com.google.guava"
+    ),
+    ivy"org.apache.httpcomponents:httpclient:4.5.14",
+    ivy"commons-codec:commons-codec:1.15"
+  )
+  object test extends MavenTests with TestModule.Junit4
+}
