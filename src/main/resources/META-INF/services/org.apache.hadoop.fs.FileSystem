@@ -13,5 +13,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-org.apache.hadoop.gateway.hdfs.web.KnoxWebHdfsFileSystem
-org.apache.hadoop.gateway.hdfs.web.KnoxSWebHdfsFileSystem
+org.apache.hadoop.hdfs.web.KnoxWebHdfsFileSystem
+org.apache.hadoop.hdfs.web.KnoxSWebHdfsFileSystem

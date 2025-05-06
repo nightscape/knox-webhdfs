@@ -15,20 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.gateway.hdfs.web;
+package org.apache.hadoop.hdfs.web;
 
-import org.apache.hadoop.hdfs.web.WebHdfsConstants;
 import org.apache.hadoop.io.Text;
 
 public class KnoxSWebHdfsFileSystem extends KnoxWebHdfsFileSystem {
-
-  public static final String KNOX_SWEBHDFS_SCHEME = "knoxswebhdfs";
-
-  public static final int KNOX_SWEBHDFS_DEFAULT_PORT = 8443;
+  public static final String SCHEME = "knoxswebhdfs";
+  public static final int DEFAULT_PORT = 8443;
 
   @Override
   public String getScheme() {
-    return KNOX_SWEBHDFS_SCHEME;
+    return SCHEME;
   }
 
   @Override
@@ -43,7 +40,6 @@ public class KnoxSWebHdfsFileSystem extends KnoxWebHdfsFileSystem {
 
   @Override
   protected int getDefaultPort() {
-    return KNOX_SWEBHDFS_DEFAULT_PORT;
+    return DEFAULT_PORT;
   }
-
 }
