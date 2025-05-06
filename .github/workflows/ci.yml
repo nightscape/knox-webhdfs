@@ -1,0 +1,126 @@
+name: Continuous Integration
+
+on:
+  pull_request:
+    branches: ['**', '!update/**', '!pr/**']
+  push:
+    branches: ['**', '!update/**', '!pr/**']
+    tags: [v*]
+
+env:
+  PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
+  SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+  SONATYPE_CREDENTIAL_HOST: ${{ secrets.SONATYPE_CREDENTIAL_HOST }}
+  SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+  PGP_SECRET: ${{ secrets.PGP_SECRET }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current branch (full)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Java (temurin@11)
+        id: download-java-temurin-11
+        uses: typelevel/download-java@v2
+        with:
+          distribution: temurin
+          java-version: 11
+
+      - name: Setup Java (temurin@11)
+        uses: actions/setup-java@v4
+        with:
+          distribution: jdkfile
+          java-version: 11
+          jdkFile: ${{ steps.download-java-temurin-11.outputs.jdkFile }}
+
+      - name: Cache mill
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.mill
+            ~/.ivy2/cache
+            ~/.coursier/cache/v1
+            ~/.cache/coursier/v1
+            ~/AppData/Local/Coursier/Cache/v1
+            ~/Library/Caches/Coursier/v1
+          key: ${{ runner.os }}-mill-cache-v2-${{ hashFiles('**/*.mill') }}-${{ hashFiles('project/build.properties') }}
+
+      - name: Test
+        run: ./mill test
+
+      - name: Publish Test Report
+        uses: mikepenz/action-junit-report@v5
+        if: always() # always run even if the previous step fails
+        with:
+          fail_on_failure: false
+          include_passed: false
+          detailed_summary: true
+          annotate_only: true
+          require_tests: false
+          report_paths: 'out/**/test-report.xml'
+
+  publish:
+    name: Publish Artifacts
+    needs: [build]
+    if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        java: [temurin@11]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout current branch (full)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Java (temurin@11)
+        id: download-java-temurin-11
+        if: matrix.java == 'temurin@11'
+        uses: typelevel/download-java@v2
+        with:
+          distribution: temurin
+          java-version: 11
+
+      - name: Setup Java (temurin@11)
+        if: matrix.java == 'temurin@11'
+        uses: actions/setup-java@v4
+        with:
+          distribution: jdkfile
+          java-version: 11
+          jdkFile: ${{ steps.download-java-temurin-11.outputs.jdkFile }}
+
+      - name: Cache mill
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.mill
+            ~/.ivy2/cache
+            ~/.coursier/cache/v1
+            ~/.cache/coursier/v1
+            ~/AppData/Local/Coursier/Cache/v1
+            ~/Library/Caches/Coursier/v1
+          key: ${{ runner.os }}-mill-cache-v2-${{ hashFiles('**/*.mill') }}-${{ hashFiles('.mill-version') }}
+
+      - name: Import GPG Key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.PGP_SECRET }}
+          passphrase: ${{ secrets.PGP_PASSPHRASE }}
+          trust_level: 5
+
+      - name: Publish
+        run: |
+          export GPG_TTY=$(tty)
+          ./mill -i mill.contrib.sonatypecentral.SonatypeCentralPublishModule/publishAll \
+            --publishArtifacts __.publishArtifacts \
+            --username $SONATYPE_USERNAME \
+            --password $SONATYPE_PASSWORD \
+            --gpgArgs "--passphrase=$PGP_PASSPHRASE,--no-tty,--pinentry-mode,loopback,--batch,--yes,-a,-b" \
+            --bundleName dev.mauch-knox-webhdfs-$(date +%Y-%m-%d-%H-%M)

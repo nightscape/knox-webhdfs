@@ -1,0 +1,43 @@
+import mill._, scalalib._, publish._
+import mill.scalalib.Assembly._
+
+import $ivy.`com.lihaoyi::mill-contrib-sonatypecentral:`
+import mill.contrib.sonatypecentral.SonatypeCentralPublishModule
+import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.4.0`
+import de.tobiasroeser.mill.vcs.version.VcsVersion
+
+object `package` extends RootModule with MavenModule with SonatypeCentralPublishModule {
+  val hadoopVersion = "3.3.4"
+  def ivyDeps = Agg(
+    ivy"org.apache.hadoop:hadoop-common:$hadoopVersion".excludeOrg(
+      "com.fasterxml.jackson.core",
+      "com.fasterxml.jackson.module",
+      "com.google.guava"
+    ),
+    ivy"org.apache.hadoop:hadoop-client:$hadoopVersion".excludeOrg(
+      "com.fasterxml.jackson.core",
+      "com.fasterxml.jackson.module",
+      "com.google.guava"
+    ),
+    ivy"org.apache.hadoop:hadoop-hdfs-client:$hadoopVersion".excludeOrg(
+      "com.fasterxml.jackson.core",
+      "com.fasterxml.jackson.module",
+      "com.google.guava"
+    ),
+    ivy"org.apache.httpcomponents:httpclient:4.5.14",
+    ivy"commons-codec:commons-codec:1.15"
+  )
+
+  override def publishVersion: T[String] = T {
+    VcsVersion.vcsState().format(untaggedSuffix = "-SNAPSHOT")
+  }
+  def pomSettings = PomSettings(
+    description = "An extension to the Hadoop WebHDFS API for Knox SSO",
+    organization = "dev.mauch",
+    url = "https://github.com/nightscape/knox-webhdfs",
+    licenses = Seq(License.`Apache-2.0`),
+    versionControl = VersionControl.github("nightscape", "knox-webhdfs"),
+    developers = Seq(Developer("nightscape", "Martin Mauch", "https://github.com/nightscape"))
+  )
+  object test extends MavenTests with TestModule.Junit4
+}
